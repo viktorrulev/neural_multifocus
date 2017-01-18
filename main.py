@@ -38,7 +38,7 @@ def main():
 
     conv1_kernel_size = 12
     conv1_kernel_num = 16
-    conv2_kernel_size = 12
+    conv2_kernel_size = 8
     conv2_kernel_num = 16
 
     fc1_num = 500
@@ -49,8 +49,8 @@ def main():
     w_conv1_1 = tf.Variable(tf.constant(0.0, shape=[conv1_kernel_size, conv1_kernel_size, 1, 8]), name='conv1_w_sharp')
     w_conv1_2 = tf.Variable(tf.constant(0.0, shape=[conv1_kernel_size, conv1_kernel_size, 1, 8]), name='conv1_w_blurry')
     w_conv1 = tf.concat(3, [w_conv1_1, w_conv1_2], name='w_conv_1')
-
     b_conv1 = bias_variable([conv1_kernel_num], 'b_conv_1')
+
     w_conv2 = weight_variable([conv2_kernel_size, conv2_kernel_size, conv1_kernel_num, conv2_kernel_num], 'w_conv_2')
     b_conv2 = weight_variable([conv2_kernel_num], 'b_conv_2')
 
@@ -59,7 +59,7 @@ def main():
     h_conv2 = lrelu(conv2d(h_pool1, w_conv2) + b_conv2)
     h_pool2 = h_conv2
 
-    result_side = int(h_pool2.get_shape()[1])
+    result_side = int(h_pool2.get_shape().as_list()[1])
 
     w_fc1 = weight_variable([result_side * result_side * conv2_kernel_num, fc1_num], 'w_full_1')
     b_fc1 = bias_variable([fc1_num], 'b_full_1')
@@ -104,10 +104,14 @@ def main():
 
     with tf.name_scope('summary'):
         kernels_on_grid = put_kernels_on_grid(w_conv1, 4, 4)
+        kernels2_stack = tf.reshape(w_conv2, [conv2_kernel_size, conv2_kernel_size, 1, -1])
+        kernels2_on_grid = put_kernels_on_grid(kernels2_stack, 16, 16)
+
         tf.summary.scalar('accuracy', accuracy)
         tf.summary.scalar('cross_entropy', cross_entropy)
         tf.summary.scalar('reg_penalty', reg_penalty)
-        #tf.summary.image('features', kernels_on_grid)
+        tf.summary.image('features_w1', kernels_on_grid)
+        tf.summary.image('features_w2', kernels2_on_grid)
         #tf.summary.image('batch', in_images)
         combined_summary = tf.summary.merge_all()
 
@@ -134,14 +138,15 @@ def main():
 
         for batch in range(my_input.train_batch_num):
             if i % 100 == 0:
-                test_labels, test_vectors = my_input.get_next_test_batch()
-                [acc, summary, ce, pen] = session.run([accuracy, combined_summary, cross_entropy, total_reg_penalty],
-                                                      feed_dict={in_labels: test_labels, in_vectors: test_vectors})
+                test_labels, test_vectors = my_input.get_next_test_batch(batch_files_num=2)
+                [acc, summary, ce, pen, cw2] = session.run([accuracy, combined_summary, cross_entropy, total_reg_penalty, kernels2_on_grid],
+                                                        feed_dict={in_labels: test_labels, in_vectors: test_vectors})
 
                 writer.add_summary(summary, i)
+                write_heatmap_to_png(cw2, 'cw2%05d.png' % i, scale=2)
                 print('iteration %05d, accuracy = %f, cross-entropy = %f, penalty = %f' % (i, acc, ce, pen))
 
-            train_labels, train_vectors = my_input.get_next_train_batch()
+            train_labels, train_vectors = my_input.get_next_train_batch(batch_files_num=1)
             step = session.run([train_step],
                                feed_dict={in_labels: train_labels, in_vectors: train_vectors, train_speed: spd})
 

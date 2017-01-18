@@ -24,9 +24,9 @@ def write_heatmap_to_png(a, filename, scale=1):
                     colored[ind_i, ind_j, 2] = 0
 
                     if val > 0:
-                        colored[ind_i, ind_j, 0] = abs(val * (255 / abs_max))
+                        colored[ind_i, ind_j, 0] = abs(val * (255 / (abs_max + 0.001)))
                     else:
-                        colored[ind_i, ind_j, 2] = abs(val * (255 / abs_max))
+                        colored[ind_i, ind_j, 2] = abs(val * (255 / (abs_max + 0.001)))
 
     png.from_array(colored, 'RGB').save(filename)
 

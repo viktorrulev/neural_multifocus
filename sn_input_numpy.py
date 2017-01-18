@@ -26,7 +26,7 @@ class NumpyInput:
     IMAGE_SIZE = 64 * 64
 
     TRAIN_BATCH_FILES = 1
-    TEST_BATCH_FILES = 8
+    TEST_BATCH_FILES = 2 #8
 
     TRAIN_FIXED = False
     TEST_FIXED = True
@@ -58,15 +58,15 @@ class NumpyInput:
 
         print('%d train batches, %d test batches' % (self.train_batch_num, self.test_batch_num))
 
-    def get_next_train_batch(self, flag='all'):
+    def get_next_train_batch(self, batch_files_num=1, flag='all'):
         actual_batch_size = 0
         if flag == 'first' or flag == 'second':
             actual_batch_size = self.BATCH_SIZE // 2
         else:
             actual_batch_size = self.BATCH_SIZE
 
-        labels = np.ndarray((self.TRAIN_BATCH_FILES * actual_batch_size, self.LABEL_SIZE), np.float32)
-        images = np.ndarray((self.TRAIN_BATCH_FILES * actual_batch_size, self.IMAGE_SIZE), np.float32)
+        labels = np.ndarray((batch_files_num * actual_batch_size, self.LABEL_SIZE), np.float32)
+        images = np.ndarray((batch_files_num * actual_batch_size, self.IMAGE_SIZE), np.float32)
 
         if self.TRAIN_FIXED:
             self.next_train_batch = 0
@@ -88,7 +88,7 @@ class NumpyInput:
             exit(0)
 
 
-        for times in range(self.TRAIN_BATCH_FILES):
+        for times in range(batch_files_num):
             f = open(self.train_files[self.next_train_batch], 'rb')
 
             data = np.fromfile(f, dtype=np.uint8)
@@ -105,15 +105,15 @@ class NumpyInput:
 
         return labels, images
 
-    def get_next_test_batch(self, flag='all'):
+    def get_next_test_batch(self, batch_files_num=1, flag='all'):
         actual_batch_size = 0
         if flag == 'first' or flag == 'second':
             actual_batch_size = self.BATCH_SIZE // 2
         else:
             actual_batch_size = self.BATCH_SIZE
 
-        labels = np.ndarray((self.TEST_BATCH_FILES * actual_batch_size, self.LABEL_SIZE), np.float32)
-        images = np.ndarray((self.TEST_BATCH_FILES * actual_batch_size, self.IMAGE_SIZE), np.float32)
+        labels = np.ndarray((batch_files_num * actual_batch_size, self.LABEL_SIZE), np.float32)
+        images = np.ndarray((batch_files_num * actual_batch_size, self.IMAGE_SIZE), np.float32)
 
         if self.TEST_FIXED:
             self.next_test_batch = 0
@@ -134,7 +134,7 @@ class NumpyInput:
             print('incorrect flag: %s' % flag)
             exit(0)
 
-        for times in range(self.TEST_BATCH_FILES):
+        for times in range(batch_files_num):
             f = open(self.test_files[self.next_test_batch], 'rb')
 
             data = np.fromfile(f, dtype=np.uint8)
